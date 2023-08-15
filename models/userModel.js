@@ -6,24 +6,62 @@ const userSchema = new mongoose.Schema(
 	{
 		firstName: {
 			type: String,
-			required: true,
 		},
 		lastName: {
 			type: String,
-			required: true,
 		},
 		email: {
 			type: String,
-			required: true,
 		},
 		password: {
 			type: String,
-			required: true,
 		},
 		profile_picture: {
 			type: String,
 			default:
 				"https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+		},
+		gender: {
+			type: String,
+			enum: ["male", "female", "other"],
+		},
+		location: {
+			type: String,
+			default: "toronto",
+		},
+		player_pickleball: {
+			level: {
+				type: String,
+				enum: ["beginner", "intermediate", "advanced"],
+			},
+			seeking_type: {
+				type: String,
+				enum: ["partner", "opponent"],
+			},
+		},
+		availability: {
+			time: {
+				start: Date,
+				end: Date,
+			},
+			day: [
+				{
+					type: String,
+					enum: [
+						"sunday",
+						"monday",
+						"tuesday",
+						"wednesday",
+						"thrusday",
+						"friday",
+						"satuarday",
+					],
+				},
+			],
+		},
+		invitation: {
+			type: mongoose.Schema.ObjectId,
+			ref: "invitation",
 		},
 	},
 	{

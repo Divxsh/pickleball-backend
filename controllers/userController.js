@@ -2,16 +2,27 @@ const User = require("../models/userModel");
 const generateToken = require("../helpers/generateToken");
 
 const addUser = async (req, res) => {
-	const { firstName, lastName, email, password, profile_picture } = req.body;
+	console.log(req.body);
+	const {
+		firstName,
+		lastName,
+		email,
+		password,
+		gender,
+		location,
+		player_level,
+		availability_time,
+		availability_day,
+		seeking_type,
+		profile_picture,
+	} = req.body;
 
-	if (!firstName ||  !lastName || !email || !password) {
+	if (!firstName || !lastName || !email || !password) {
 		return res.status(400).send({ msg: "User details are missing" });
 	}
 
 	try {
-		const userExist = await User.findOne({
-			$or: [{ email: email.toLowerCase() }],
-		});
+		const userExist = await User.findOne({ email: email.toLowerCase() });
 
 		if (userExist) {
 			return res.status(404).send({
@@ -25,20 +36,33 @@ const addUser = async (req, res) => {
 			lastName,
 			email: email.toLowerCase(),
 			password,
+			gender: gender.toLowerCase(),
+			player_pickleball: {
+				level: player_level.toLowerCase(),
+				seeking_type: seeking_type.toLowerCase(),
+			},
+			availability: {
+				time: {
+					start: availability_time.start,
+					end: availability_time.end,
+				},
+				day: availability_day,
+			},
 			profile_picture,
 		});
 
 		const responseData = {
 			_id: newUser._id,
-			firstName:newUser.firstName,
-			lastName:newUser.lastName,
+			firstName: newUser.firstName,
+			lastName: newUser.lastName,
 			email: newUser.email,
 			profile_picture: newUser.profile_picture,
 			auth_token: generateToken(this._id),
 		};
+
 		return res.status(201).send({
-			msg:"User registered succesfully",
-			data: responseData
+			msg: "User registered succesfully",
+			data: responseData,
 		});
 	} catch (err) {
 		return res.status(400).send({ msg: "User not created", err: err });
@@ -61,13 +85,15 @@ const verifyUser = async (req, res) => {
 			return res.status(400).send({ msg: "password is wrong" });
 		}
 
-		return res.status(200).send({msg:"Login successfull",
-		data:{
-			_id: user._id,
-			email: user.email,
-			profile_picture: user.profile_picture,
-			auth_token: generateToken(user._id),
-		}});
+		return res.status(200).send({
+			msg: "Login successfull",
+			data: {
+				_id: user._id,
+				email: user.email,
+				profile_picture: user.profile_picture,
+				auth_token: generateToken(user._id),
+			},
+		});
 	} catch (e) {
 		res.status(400).send({ msg: "Login failed" });
 	}
