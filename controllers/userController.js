@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+const Court = require("../models/courtModel");
 const generateToken = require("../helpers/generateToken");
 
 const addUser = async (req, res) => {
@@ -99,4 +100,10 @@ const verifyUser = async (req, res) => {
 	}
 };
 
-module.exports = { addUser, verifyUser };
+const getCourts = async (req, res) => {
+	const data = await Court.find();
+
+	res.status(200).json(data);
+};
+
+module.exports = { addUser, verifyUser, getCourts };
