@@ -41,8 +41,8 @@ const userSchema = new mongoose.Schema(
 		},
 		availability: {
 			time: {
-				start: Date,
-				end: Date,
+				start: String,
+				end: String,
 			},
 			day: [
 				{
