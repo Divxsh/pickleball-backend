@@ -37,10 +37,11 @@ const addUser = async (req, res) => {
 			lastName,
 			email: email.toLowerCase(),
 			password,
-			gender: gender.toLowerCase(),
+			gender,
+			location,
 			player_pickleball: {
 				level: player_level.toLowerCase(),
-				seeking_type: seeking_type.toLowerCase(),
+				seeking_type,
 			},
 			availability: {
 				time: {
@@ -66,7 +67,10 @@ const addUser = async (req, res) => {
 			data: responseData,
 		});
 	} catch (err) {
-		return res.status(400).send({ msg: "User not created", err: err });
+		console.log("err", err);
+		return res
+			.status(400)
+			.send({ msg: err ? err.message : "User not created" });
 	}
 };
 

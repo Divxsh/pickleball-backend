@@ -6,15 +6,19 @@ const userSchema = new mongoose.Schema(
 	{
 		firstName: {
 			type: String,
+			required: true,
 		},
 		lastName: {
 			type: String,
+			required: true,
 		},
 		email: {
 			type: String,
+			required: true,
 		},
 		password: {
 			type: String,
+			required: true,
 		},
 		profile_picture: {
 			type: String,
@@ -33,11 +37,15 @@ const userSchema = new mongoose.Schema(
 			level: {
 				type: String,
 				enum: ["beginner", "intermediate", "advanced"],
+				required: true,
 			},
-			seeking_type: {
-				type: String,
-				enum: ["partner", "opponent"],
-			},
+			seeking_type: [
+				{
+					type: String,
+					enum: ["partner", "opponent"],
+					required: true,
+				},
+			],
 		},
 		availability: {
 			time: {
@@ -56,6 +64,7 @@ const userSchema = new mongoose.Schema(
 						"friday",
 						"satuarday",
 					],
+					required: true,
 				},
 			],
 		},
