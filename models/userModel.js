@@ -60,18 +60,24 @@ const userSchema = new mongoose.Schema(
 						"monday",
 						"tuesday",
 						"wednesday",
-						"thrusday",
+						"thursday",
 						"friday",
-						"satuarday",
+						"saturday",
 					],
 					required: true,
 				},
 			],
 		},
-		invitation: {
-			type: mongoose.Schema.ObjectId,
-			ref: "invitation",
-		},
+		// invitation: {
+		// 	// sending by user to player
+		// 	type: mongoose.Schema.ObjectId,
+		// 	ref: "invitation",
+		// },
+		// invites: {
+		// 	// received by players
+		// 	type: mongoose.Schema.ObjectId,
+		// 	ref: "invitation",
+		// },
 	},
 	{
 		timestamps: true,
