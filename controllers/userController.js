@@ -58,7 +58,11 @@ const addUser = async (req, res) => {
 			firstName: newUser.firstName,
 			lastName: newUser.lastName,
 			email: newUser.email,
-			profile_picture: newUser.profile_picture,
+			location: newUser.location,
+			level: newUser.player_pickleball.level,
+			availability_day: newUser.availability.day,
+			availability_time: newUser.availability.time,
+			seeking_type: newUser.player_pickleball.seeking_type,
 			auth_token: generateToken(this._id),
 		};
 
@@ -94,9 +98,16 @@ const verifyUser = async (req, res) => {
 			msg: "Login successfull",
 			data: {
 				_id: user._id,
+				firstName: user.firstName,
+				lastName: user.lastName,
 				email: user.email,
-				profile_picture: user.profile_picture,
+				location: user.location,
+				level: user.player_pickleball.level,
+				availability_day: user.availability.day,
+				availability_time: user.availability.time,
+				seeking_type: user.player_pickleball.seeking_type,
 				auth_token: generateToken(user._id),
+
 			},
 		});
 	} catch (e) {
