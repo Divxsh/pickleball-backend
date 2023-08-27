@@ -11,7 +11,8 @@ const getDate = (days) => {
 const getPlayers = async (req, res) => {
 	const userDetail = req.user;
 
-	// creating a filter for seeking type
+	try {
+		// creating a filter for seeking type
 	const seeking_type = userDetail.player_pickleball.seeking_type;
 	const seek_typ = seeking_type.length === 1 ? seeking_type : {$all: ["opponent", "partner"]};
 
@@ -103,6 +104,10 @@ const getPlayers = async (req, res) => {
 	}
 
 	res.status(200).send({ data: userDetailsMap });
+	} catch (error) {
+		res.status(404).send({msg:error.message})
+		
+	}
 };
 
 const sendInvitation = async (req, res) => {

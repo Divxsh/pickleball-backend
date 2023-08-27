@@ -63,7 +63,7 @@ const addUser = async (req, res) => {
 			availability_day: newUser.availability.day,
 			availability_time: newUser.availability.time,
 			seeking_type: newUser.player_pickleball.seeking_type,
-			auth_token: generateToken(this._id),
+			auth_token: generateToken(newUser._id),
 		};
 
 		return res.status(201).send({
