@@ -3,8 +3,8 @@ const User = require("../models/userModel");
 
 
 const getDate = (days) => {
-	let dateInMilliSeconds = Date.now() + (days*(1000*60*60*24))
-    let date = new Date(dateInMilliSeconds).toISOString().split('T')[0];
+	let dateInMilliSeconds = Date.now() + (days * (1000 * 60 * 60 * 24))
+	let date = new Date(dateInMilliSeconds).toISOString().split('T')[0];
 	return date;
 }
 
@@ -13,100 +13,117 @@ const getPlayers = async (req, res) => {
 
 	try {
 		// creating a filter for seeking type
-	const seeking_type = userDetail.player_pickleball.seeking_type;
-	const seek_typ = seeking_type.length === 1 ? seeking_type : {$all: ["opponent", "partner"]};
+		const seeking_type = userDetail.player_pickleball.seeking_type;
+		const seek_typ = seeking_type.length === 1 ? { $in: seeking_type } : { $all: ["opponent", "partner"] };
 
-	// Getting players from db who matches the criteria
-	const players = await User.find(
-		{
-			_id: { $ne: userDetail._id },
-			"player_pickleball.seeking_type": seek_typ,
-			"availability.day": { $in: userDetail.availability.day },
-		},
-		{
-			_id:true,
-			firstName: true,
-			lastName: true,
-			location: true,
-			player_pickleball: true,
-			availability: true,
-		},
-	);
+		// Getting players from db who matches the criteria
+		const players = await User.find(
+			{
+				_id: { $ne: userDetail._id },
+				"player_pickleball.seeking_type": seek_typ,
+				"availability.day": { $in: userDetail.availability.day },
+			},
+			{
+				_id: true,
+				firstName: true,
+				lastName: true,
+				location: true,
+				player_pickleball: true,
+				availability: true,
+			},
+		);
 
-	let userIds = [], userDetailsMap = {}, userInvitesMap = {};
-	
-	// Users 
-	players.forEach(id => {
-		userIds.push(id._id)
-		userDetailsMap[id._id] = {...id._doc};
-	});
+		let userIds = [], userDetailsMap = {}, userInvitesMap = {};
 
-	const startDate = getDate(1), endDate = getDate(14);
+		// Users 
+		players.forEach(id => {
+			userIds.push(id._id)
+			userDetailsMap[id._id] = { ...id._doc };
+		});
 
-	// Invitations
-	const invitees = await Invitation.find({
-		invitation_accepted: true, 
-		match_dt:{$gte: new Date(startDate), $lte: new Date(endDate)}, 
-		invitee_id:{$in:userIds}
-	})
+		const startDate = getDate(1), endDate = getDate(14);
 
-	invitees.forEach(invite => {
-		const match_d = invite.match_dt.toISOString().split("T")[0];
-		if (userInvitesMap[invite.invitee_id])
-			userInvitesMap[invite.invitee_id][match_d] = invite;
-		else
-			userInvitesMap[invite.invitee_id] = { [match_d] : invite};
-	})
+		// Invitations
+		const invitees = await Invitation.find({
+			invitation_accepted: true,
+			match_dt: { $gte: new Date(startDate), $lte: new Date(endDate) },
+			$or: [{ invitee_id: { $in: userIds } }, { inviter_id: { $in: userIds } }]
 
-	
-	const inviters = await Invitation.find({
-		invitation_accepted: true, 
-		match_dt:{$gte: new Date(startDate), $lte: new Date(endDate)}, 
-		inviter_id:{$in:userIds}
-	})
-	
-	inviters.forEach(invite => {
-		const match_d = invite.match_dt.toISOString().split("T")[0];
-		if (userInvitesMap[invite.inviter_id])
-			userInvitesMap[invite.inviter_id][match_d] = invite;
-		else
-			userInvitesMap[invite.inviter_id] = { [match_d] : invite};
-	})
-
-	const usersInvites = await Invitation.find({
-		invitation_accepted: true, 
-		match_dt:{$gte: new Date(startDate), $lte: new Date(endDate)}, 
-		$or: [{inviter_id:userDetail._id},{invitee_id: userDetail._id}]
-	})
-	
-	const userScheduled = {}
-	usersInvites.forEach(invite => {
-		const match_d = invite.match_dt.toISOString().split("T")[0];
-		userScheduled[match_d] = true;
-	})
-
-	// Generate availability data
-	for(let i = 1; i <= 14; i++){
-    	let date = getDate(i)
-
-		if (!userScheduled[date])
-			Object.entries(userDetailsMap).forEach(([key, userDetails],_) => { 
-			let isAvailable = userInvitesMap[userDetails._id] &&  userInvitesMap[userDetails._id][date] ? false : true;			
-			
-			if (isAvailable) {
-				if (!userDetails.available_dates){
-					userDetailsMap[key] = {...userDetails, available_dates: [{[date]:true}]}
-				}
-				else
-					userDetailsMap[key].available_dates.push({[date]:true})
-			}
 		})
-	}
 
-	res.status(200).send({ data: userDetailsMap });
-	} catch (error) {
-		res.status(404).send({msg:error.message})
+		invitees.forEach(invite => {
+			const match_d = invite.match_dt.toISOString().split("T")[0];
+			if (userInvitesMap[invite.invitee_id])
+				userInvitesMap[invite.invitee_id][match_d] = invite;
+			else
+				userInvitesMap[invite.invitee_id] = { [match_d]: invite };
+
+			// Setting inviter_id
+			if (userInvitesMap[invite.inviter_id])
+				userInvitesMap[invite.inviter_id][match_d] = invite;
+			else
+				userInvitesMap[invite.inviter_id] = { [match_d]: invite };
+		})
+
+
+		// const inviters = await Invitation.find({
+		// 	invitation_accepted: true, 
+		// 	match_dt:{$gte: new Date(startDate), $lte: new Date(endDate)}, 
+		// 	inviter_id:{$in:userIds}
+		// })
+
+		// inviters.forEach(invite => {
+		// 	const match_d = invite.match_dt.toISOString().split("T")[0];
+		// 	if (userInvitesMap[invite.inviter_id])
+		// 		userInvitesMap[invite.inviter_id][match_d] = invite;
+		// 	else
+		// 		userInvitesMap[invite.inviter_id] = { [match_d] : invite};
+		// })
+
+		const usersInvites = await Invitation.find({
+			match_dt: { $gte: new Date(startDate), $lte: new Date(endDate) },
+			$or: [{ inviter_id: userDetail._id }, { invitee_id: userDetail._id }]
+		})
+
+		const userScheduledAccepted = {}
+		const userScheduledNotAccepted = {}
 		
+		usersInvites.forEach(invite => {
+			const match_d = invite.match_dt.toISOString().split("T")[0];
+			
+			if (invite.invitation_accepted)
+				userScheduledAccepted[match_d] = true;
+			else if (!userDetail._id.equals(invite.invitee_id)){
+				if (userScheduledNotAccepted[match_d])
+					userScheduledNotAccepted[match_d][invite.invitee_id] = true;
+				else 
+					userScheduledNotAccepted[match_d] = {[invite.invitee_id] : true}; 
+			}
+				
+		})
+
+		// Generate availability data
+		for (let i = 1; i <= 14; i++) {
+			let date = getDate(i)
+
+			if (!userScheduledAccepted[date])
+				Object.entries(userDetailsMap).forEach(([key, userDetails], _) => {
+					let isAvailable = userInvitesMap[userDetails._id] && userInvitesMap[userDetails._id][date] ? false : true;
+					
+					if (isAvailable && (!userScheduledNotAccepted[date] || (userScheduledNotAccepted[date] && !userScheduledNotAccepted[date][userDetails._id]))) {
+							if (!userDetails.available_dates) {
+								userDetailsMap[key] = { ...userDetails, available_dates: [{ [date]: true }] }
+							}
+							else
+								userDetailsMap[key].available_dates.push({ [date]: true })
+					}
+				})
+		}
+
+		res.status(200).send({ data: userDetailsMap });
+	} catch (error) {
+		res.status(404).send({ msg: error.message })
+
 	}
 };
 
@@ -145,14 +162,14 @@ const getInvitation = async (req, res) => {
 	const invitations = await Invitation.find({
 		inviter_id: req.user._id,
 	}).populate("invitee_id");
-	res.status(200).json({data: invitations});
+	res.status(200).json({ data: invitations });
 };
 
 const getInvites = async (req, res) => {
 	const invites = await Invitation.find({ invitee_id: req.user._id }).populate(
 		"inviter_id",
 	);
-	res.status(200).json({data: invites});
+	res.status(200).json({ data: invites });
 };
 
 const updateInviteStatus = (req, res) => {
