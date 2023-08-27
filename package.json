@@ -1,5 +1,5 @@
 {
-	"name": "chat-application-backend",
+	"name": "pickleball-backend",
 	"version": "1.0.0",
 	"description": "",
 	"main": "server.js",
@@ -7,7 +7,7 @@
 		"start": "node server.js",
 		"dev": "nodemon server.js"
 	},
-	"author": "",
+	"author": "Divash Gupta",
 	"license": "ISC",
 	"dependencies": {
 		"bcryptjs": "^2.4.3",
