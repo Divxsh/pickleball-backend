@@ -1,13 +1,21 @@
 const Invitation = require("../models/invitationModel");
 const User = require("../models/userModel");
 
+
+const getDate = (days) => {
+	let dateInMilliSeconds = Date.now() + (days*(1000*60*60*24))
+    let date = new Date(dateInMilliSeconds).toISOString().split('T')[0];
+	return date;
+}
+
 const getPlayers = async (req, res) => {
 	const userDetail = req.user;
 
+	// creating a filter for seeking type
 	const seeking_type = userDetail.player_pickleball.seeking_type;
 	const seek_typ = seeking_type.length === 1 ? seeking_type : {$all: ["opponent", "partner"]};
 
-	// Query
+	// Getting players from db who matches the criteria
 	const players = await User.find(
 		{
 			_id: { $ne: userDetail._id },
@@ -25,16 +33,23 @@ const getPlayers = async (req, res) => {
 	);
 
 	let userIds = [], userDetailsMap = {}, userInvitesMap = {};
-
+	
 	// Users 
 	players.forEach(id => {
 		userIds.push(id._id)
 		userDetailsMap[id._id] = {...id._doc};
 	});
-	
+
+	const startDate = getDate(1), endDate = getDate(14);
+
 	// Invitations
-	const invitations = await Invitation.find({invitation_accepted: true, match_dt:{$gt: new Date("2023-08-25")}})
-	invitations.forEach(invite => {
+	const invitees = await Invitation.find({
+		invitation_accepted: true, 
+		match_dt:{$gte: new Date(startDate), $lte: new Date(endDate)}, 
+		invitee_id:{$in:userIds}
+	})
+
+	invitees.forEach(invite => {
 		const match_d = invite.match_dt.toISOString().split("T")[0];
 		if (userInvitesMap[invite.invitee_id])
 			userInvitesMap[invite.invitee_id][match_d] = invite;
@@ -42,17 +57,43 @@ const getPlayers = async (req, res) => {
 			userInvitesMap[invite.invitee_id] = { [match_d] : invite};
 	})
 
+	
+	const inviters = await Invitation.find({
+		invitation_accepted: true, 
+		match_dt:{$gte: new Date(startDate), $lte: new Date(endDate)}, 
+		inviter_id:{$in:userIds}
+	})
+	
+	inviters.forEach(invite => {
+		const match_d = invite.match_dt.toISOString().split("T")[0];
+		if (userInvitesMap[invite.inviter_id])
+			userInvitesMap[invite.inviter_id][match_d] = invite;
+		else
+			userInvitesMap[invite.inviter_id] = { [match_d] : invite};
+	})
+
+	const usersInvites = await Invitation.find({
+		invitation_accepted: true, 
+		match_dt:{$gte: new Date(startDate), $lte: new Date(endDate)}, 
+		$or: [{inviter_id:userDetail._id},{invitee_id: userDetail._id}]
+	})
+	
+	const userScheduled = {}
+	usersInvites.forEach(invite => {
+		const match_d = invite.match_dt.toISOString().split("T")[0];
+		userScheduled[match_d] = true;
+	})
 
 	// Generate availability data
 	for(let i = 1; i <= 14; i++){
-  		let dateInMilliSeconds = Date.now() + (i*(1000*60*60*24))
-    	let date = new Date(dateInMilliSeconds).toISOString().split('T')[0];
+    	let date = getDate(i)
 
-		Object.entries(userDetailsMap).forEach(([key, userDetails],idx) => { 
+		if (!userScheduled[date])
+			Object.entries(userDetailsMap).forEach(([key, userDetails],_) => { 
 			let isAvailable = userInvitesMap[userDetails._id] &&  userInvitesMap[userDetails._id][date] ? false : true;			
+			
 			if (isAvailable) {
 				if (!userDetails.available_dates){
-					console.log("Not present in user",userDetailsMap[key]);
 					userDetailsMap[key] = {...userDetails, available_dates: [{[date]:true}]}
 				}
 				else
@@ -99,18 +140,18 @@ const getInvitation = async (req, res) => {
 	const invitations = await Invitation.find({
 		inviter_id: req.user._id,
 	}).populate("invitee_id");
-	res.status(200).json(invitations);
+	res.status(200).json({data: invitations});
 };
 
 const getInvites = async (req, res) => {
 	const invites = await Invitation.find({ invitee_id: req.user._id }).populate(
 		"inviter_id",
 	);
-	res.status(200).json(invites);
+	res.status(200).json({data: invites});
 };
 
 const updateInviteStatus = (req, res) => {
-
+	// if one match request accepted for specific date the other request of taht specific date will be rejected 
 };
 
 module.exports = {
