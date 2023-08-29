@@ -87,6 +87,7 @@ const getPlayers = async (req, res) => {
 
 		const userScheduledAccepted = {}
 		const userScheduledNotAccepted = {}
+		
 
 		usersInvites.forEach(invite => {
 			const match_d = invite.match_dt.toISOString().split("T")[0];
@@ -98,6 +99,12 @@ const getPlayers = async (req, res) => {
 					userScheduledNotAccepted[match_d][invite.invitee_id] = true;
 				else
 					userScheduledNotAccepted[match_d] = { [invite.invitee_id]: true };
+			}
+			else if (!userDetail._id.equals(invite.inviter_id)) {
+				if (userScheduledNotAccepted[match_d])
+					userScheduledNotAccepted[match_d][invite.inviter_id] = true;
+				else
+					userScheduledNotAccepted[match_d] = { [invite.inviter_id]: true };
 			}
 
 		})
@@ -159,14 +166,14 @@ const sendInvitation = async (req, res) => {
 };
 
 const getInvitation = async (req, res) => {
-	const invitations = await Invitation.find({inviter_id: req.user._id})
-										.populate("invitee_id");
+	const invitations = await Invitation.find({ inviter_id: req.user._id }, "_id inviter_id match_st seeking_type invitation_status match_dt ")
+		.populate("invitee_id", "_id firstName lastName");
 	res.status(200).json({ data: invitations });
 };
 
 const getInvites = async (req, res) => {
-	const invites = await Invitation.find({ invitee_id: req.user._id })
-									.populate("inviter_id",);
+	const invites = await Invitation.find({ invitee_id: req.user._id }, "_id inviter_id match_st seeking_type invitation_status match_dt ")
+		.populate("inviter_id", "_id firstName lastName");
 	res.status(200).json({ data: invites });
 };
 
@@ -179,18 +186,23 @@ const updateInviteStatus = async (req, res) => {
 
 	try {
 		const updated = await Invitation.findByIdAndUpdate(
-			{ _id: invite_id }, 
-			{ 
-				$set: { 
-					invitation_status: status, 
-					invitation_accepted: status === "accepted" ? true : false 
-				} 
+			{ _id: invite_id },
+			{
+				$set: {
+					invitation_status: status,
+					invitation_accepted: status === "accepted" ? true : false
+				}
 			})
 
 		await Invitation.updateMany(
-			{ _id: { $ne: updated._id }, 
-			match_dt: updated.match_dt, 
-			$or: [{ inviter_id: _id }, { invitee_id: _id }] }, 
+			{
+				_id: { $ne: updated._id },
+				match_dt: updated.match_dt,
+				$or: [
+					{ inviter_id: { $in: [updated.invitee_id, updated.inviter_id] } }, 
+					{ invitee_id: { $in: [updated.invitee_id, updated.inviter_id] } }
+				]
+			},
 			{ invitation_status: "rejected" }
 		)
 
