@@ -167,19 +167,18 @@ const sendInvitation = async (req, res) => {
 
 const getInvitation = async (req, res) => {
 	const invitations = await Invitation.find({ inviter_id: req.user._id }, "_id inviter_id match_day match_st match_dt seeking_type invitation_status   ")
-		.populate("invitee_id", "_id firstName lastName");
+		.populate("invitee_id", "_id firstName lastName email");
 	res.status(200).json({ data: invitations });
 };
 
 const getInvites = async (req, res) => {
-	const invites = await Invitation.find({ invitee_id: req.user._id }, "_id inviter_id match_day match_st match_dt seeking_type invitation_status")
-		.populate("inviter_id", "_id firstName lastName");
+	const invites = await Invitation.find({ invitee_id: req.user._id, invitation_status:"pending" }, "_id inviter_id match_day match_st match_dt seeking_type invitation_status")
+		.populate("inviter_id", "_id firstName lastName email");
 	res.status(200).json({ data: invites });
 };
 
 const updateInviteStatus = async (req, res) => {
 	const { invite_id, status } = req.body;
-	const { _id } = req.user;
 
 	if (!invite_id || !status)
 		res.status(404).send({ msg: "details are missing" })
